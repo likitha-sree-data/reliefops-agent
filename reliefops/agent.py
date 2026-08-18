@@ -12,6 +12,7 @@ MIN_MEALS_PER_PERSON = 1
 APPROVAL_THRESHOLD_PERCENT = 0.20
 
 TASKS_COLLECTION = "tasks"
+ROUTES_COLLECTION = "routes"
 GCP_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "reliefops-agent")
 
 RESOURCE_ALIASES = {
@@ -38,17 +39,14 @@ def _load_inventory() -> dict:
         return json.load(f)
 
 
-ROUTES_COLLECTION = "routes"
+def _firestore_client() -> firestore.Client:
+    return firestore.Client(project=GCP_PROJECT)
 
 
 def _load_routes() -> list:
     db = _firestore_client()
     docs = db.collection(ROUTES_COLLECTION).stream()
     return [doc.to_dict() for doc in docs]
-
-
-def _firestore_client() -> firestore.Client:
-    return firestore.Client(project=GCP_PROJECT)
 
 
 def _load_tasks() -> list:
@@ -187,17 +185,43 @@ def get_route_status(route_name: str) -> dict:
 
 
 def find_available_route(destination: str) -> dict:
-    """Deterministically finds the first OPEN route to a named destination."""
+    """Deterministically finds a usable route to a named destination. Prefers an OPEN route; if none exists, falls back to a RESTRICTED route flagged with a caution note, since restricted still means passable with limitations. A route that is flooded, closed, or otherwise blocked is never returned as usable."""
     if False: print(f"[TOOL CALLED] find_available_route(destination={destination!r})")
     routes = _load_routes()
     normalized = destination.strip().lower()
     matching = [r for r in routes if r["destination"].lower() == normalized]
     if not matching:
         return {"status": "error", "message": f"No routes found for destination {destination}"}
+
     open_routes = [r for r in matching if r["status"].lower() == "open"]
     if open_routes:
-        return {"status": "success", "available": True, "route": open_routes[0]["route"], "destination": destination, "all_routes_checked": matching}
-    return {"status": "success", "available": False, "message": f"No open route currently exists to {destination}", "all_routes_checked": matching}
+        return {
+            "status": "success",
+            "available": True,
+            "route": open_routes[0]["route"],
+            "caution": False,
+            "destination": destination,
+            "all_routes_checked": matching,
+        }
+
+    restricted_routes = [r for r in matching if r["status"].lower() == "restricted"]
+    if restricted_routes:
+        return {
+            "status": "success",
+            "available": True,
+            "route": restricted_routes[0]["route"],
+            "caution": True,
+            "caution_reason": f"{restricted_routes[0]['route']} is RESTRICTED, not fully open. Proceed with limitations and flag for human awareness.",
+            "destination": destination,
+            "all_routes_checked": matching,
+        }
+
+    return {
+        "status": "success",
+        "available": False,
+        "message": f"No usable route (open or restricted) currently exists to {destination}",
+        "all_routes_checked": matching,
+    }
 
 
 def calculate_priority(shelter_name: str) -> dict:
@@ -253,6 +277,7 @@ def create_allocation_plan(shelter_name: str) -> dict:
         "warehouse_meal_shortfall": meal_shortfall,
         "fully_covered": water_shortfall == 0 and meal_shortfall == 0,
         "route_available": route_check.get("available", False),
+        "route_caution": route_check.get("caution", False),
         "recommended_route": route_check.get("route"),
         "route_details": route_check,
     }
@@ -275,7 +300,10 @@ def requires_human_approval(shelter_name: str) -> dict:
     if total_meals > 0 and plan["recommended_meal_units"] / total_meals > APPROVAL_THRESHOLD_PERCENT:
         reasons.append(f"Meal allocation ({plan['recommended_meal_units']}) exceeds {int(APPROVAL_THRESHOLD_PERCENT*100)}% of total warehouse meal stock ({total_meals}).")
     if not plan["route_available"]:
-        reasons.append("No open route currently exists to this shelter, route risk is critical.")
+        reasons.append("No open or restricted route currently exists to this shelter, route risk is critical.")
+    elif plan.get("route_caution"):
+        caution_msg = plan["route_details"].get("caution_reason", "Recommended route is restricted, not fully open.")
+        reasons.append(caution_msg)
     if not plan["fully_covered"]:
         reasons.append("Warehouse cannot fully cover this shelter's shortage, allocation would be partial.")
 
@@ -382,6 +410,8 @@ Rules:
 6. Tool selection: single named shelter status -> get_shelter_status. Comparing shelters -> get_shelters. Shortage at a shelter -> calculate_shelter_shortage. Warehouse stock -> get_inventory. Whether enough of a resource exists -> check_resource_availability. All routes -> get_routes. One named route -> get_route_status. Whether a usable route exists -> find_available_route. Which shelter needs help first -> calculate_priority. Recommended allocation -> create_allocation_plan. Whether an allocation is approved to proceed or must pause -> request_approval. Turning a recommendation into a tracked task -> create_task. Changing an existing task's status by its task_id -> update_task.
 7. Always explain results using their breakdown or reasons, don't just state a number or label.
 8. create_task is how work actually gets tracked. If a user asks you to "create a task", "dispatch", "send supplies to", or "act on" a shelter's plan, use create_task, not just create_allocation_plan.
+9. A restricted route is usable but risky. If a plan recommends a restricted route, always tell the person plainly that the route is not fully open and that human approval is required before dispatch.
+10. Never use emojis, symbols, or decorative icons anywhere in your responses. Plain text and markdown formatting only.
 """,
     tools=[
         get_shelter_status,
