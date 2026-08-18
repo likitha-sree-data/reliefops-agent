@@ -116,7 +116,7 @@ def _accessibility_score(canonical_shelter_name: str) -> dict:
 
 def get_shelter_status(shelter_name: str) -> dict:
     """Returns the current operational status of a single named disaster shelter."""
-    print(f"[TOOL CALLED] get_shelter_status(shelter_name={shelter_name!r})")
+    if False: print(f"[TOOL CALLED] get_shelter_status(shelter_name={shelter_name!r})")
     shelters = _load_shelters()
     canonical_name, shelter = _find_shelter(shelters, shelter_name)
     if shelter is None:
@@ -126,14 +126,14 @@ def get_shelter_status(shelter_name: str) -> dict:
 
 def get_shelters() -> dict:
     """Returns operational status for ALL disaster shelters at once, for comparing shelters against each other."""
-    print("[TOOL CALLED] get_shelters()")
+    if False: print("[TOOL CALLED] get_shelters()")
     shelters = _load_shelters()
     return {"status": "success", "shelters": shelters}
 
 
 def calculate_shelter_shortage(shelter_name: str) -> dict:
     """Deterministically calculates the water and meal shortage for a named shelter, based on occupancy."""
-    print(f"[TOOL CALLED] calculate_shelter_shortage(shelter_name={shelter_name!r})")
+    if False: print(f"[TOOL CALLED] calculate_shelter_shortage(shelter_name={shelter_name!r})")
     shelters = _load_shelters()
     canonical_name, shelter = _find_shelter(shelters, shelter_name)
     if shelter is None:
@@ -143,14 +143,14 @@ def calculate_shelter_shortage(shelter_name: str) -> dict:
 
 def get_inventory() -> dict:
     """Returns the current warehouse inventory levels for all resource types."""
-    print("[TOOL CALLED] get_inventory()")
+    if False: print("[TOOL CALLED] get_inventory()")
     inventory = _load_inventory()
     return {"status": "success", "inventory": inventory}
 
 
 def check_resource_availability(resource_type: str, amount: int) -> dict:
     """Deterministically checks whether the warehouse has enough of a given resource to cover a requested amount."""
-    print(f"[TOOL CALLED] check_resource_availability(resource_type={resource_type!r}, amount={amount!r})")
+    if False: print(f"[TOOL CALLED] check_resource_availability(resource_type={resource_type!r}, amount={amount!r})")
     normalized = resource_type.strip().lower()
     key = RESOURCE_ALIASES.get(normalized)
     if key is None:
@@ -170,14 +170,14 @@ def check_resource_availability(resource_type: str, amount: int) -> dict:
 
 def get_routes() -> dict:
     """Returns the status of ALL known transportation routes."""
-    print("[TOOL CALLED] get_routes()")
+    if False: print("[TOOL CALLED] get_routes()")
     routes = _load_routes()
     return {"status": "success", "routes": routes}
 
 
 def get_route_status(route_name: str) -> dict:
     """Returns the status of a single named route, e.g. 'Route A'."""
-    print(f"[TOOL CALLED] get_route_status(route_name={route_name!r})")
+    if False: print(f"[TOOL CALLED] get_route_status(route_name={route_name!r})")
     routes = _load_routes()
     normalized = route_name.strip().lower()
     for route in routes:
@@ -188,7 +188,7 @@ def get_route_status(route_name: str) -> dict:
 
 def find_available_route(destination: str) -> dict:
     """Deterministically finds the first OPEN route to a named destination."""
-    print(f"[TOOL CALLED] find_available_route(destination={destination!r})")
+    if False: print(f"[TOOL CALLED] find_available_route(destination={destination!r})")
     routes = _load_routes()
     normalized = destination.strip().lower()
     matching = [r for r in routes if r["destination"].lower() == normalized]
@@ -202,7 +202,7 @@ def find_available_route(destination: str) -> dict:
 
 def calculate_priority(shelter_name: str) -> dict:
     """Deterministically calculates a 0-100 priority score for a named shelter using a fixed weighted formula."""
-    print(f"[TOOL CALLED] calculate_priority(shelter_name={shelter_name!r})")
+    if False: print(f"[TOOL CALLED] calculate_priority(shelter_name={shelter_name!r})")
     shelters = _load_shelters()
     canonical_name, shelter = _find_shelter(shelters, shelter_name)
     if shelter is None:
@@ -232,7 +232,7 @@ def calculate_priority(shelter_name: str) -> dict:
 
 def create_allocation_plan(shelter_name: str) -> dict:
     """Deterministically assembles a resource allocation plan for a named shelter."""
-    print(f"[TOOL CALLED] create_allocation_plan(shelter_name={shelter_name!r})")
+    if False: print(f"[TOOL CALLED] create_allocation_plan(shelter_name={shelter_name!r})")
     shelters = _load_shelters()
     canonical_name, shelter = _find_shelter(shelters, shelter_name)
     if shelter is None:
@@ -292,7 +292,7 @@ def requires_human_approval(shelter_name: str) -> dict:
 
 def request_approval(shelter_name: str) -> dict:
     """Deterministically checks a shelter's allocation plan against approval policy and either marks it auto-approved or pending human approval."""
-    print(f"[TOOL CALLED] request_approval(shelter_name={shelter_name!r})")
+    if False: print(f"[TOOL CALLED] request_approval(shelter_name={shelter_name!r})")
 
     check = requires_human_approval(shelter_name)
     if check["status"] != "success":
@@ -311,7 +311,7 @@ def request_approval(shelter_name: str) -> dict:
 
 def create_task(shelter_name: str) -> dict:
     """Creates and persists an operational task recording a shelter's allocation plan, priority, and approval status. Task records are stored in Firestore, shared across all instances."""
-    print(f"[TOOL CALLED] create_task(shelter_name={shelter_name!r})")
+    if False: print(f"[TOOL CALLED] create_task(shelter_name={shelter_name!r})")
 
     approval = request_approval(shelter_name)
     if approval["status"] != "success":
@@ -341,7 +341,7 @@ def create_task(shelter_name: str) -> dict:
 
 def update_task(task_id: str, new_status: str) -> dict:
     """Updates the status field of an existing task by task_id. Reads and writes directly to Firestore, so this is visible to every instance immediately."""
-    print(f"[TOOL CALLED] update_task(task_id={task_id!r}, new_status={new_status!r})")
+    if False: print(f"[TOOL CALLED] update_task(task_id={task_id!r}, new_status={new_status!r})")
 
     db = _firestore_client()
     doc_ref = db.collection(TASKS_COLLECTION).document(task_id)
