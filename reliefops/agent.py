@@ -38,9 +38,13 @@ def _load_inventory() -> dict:
         return json.load(f)
 
 
+ROUTES_COLLECTION = "routes"
+
+
 def _load_routes() -> list:
-    with open(DATA_DIR / "routes.json") as f:
-        return json.load(f)
+    db = _firestore_client()
+    docs = db.collection(ROUTES_COLLECTION).stream()
+    return [doc.to_dict() for doc in docs]
 
 
 def _firestore_client() -> firestore.Client:
