@@ -1,0 +1,20 @@
+{
+  "Shelter A": {
+    "capacity": 500,
+    "occupancy": 420,
+    "water_units": 700,
+    "meal_units": 850
+  },
+  "Shelter B": {
+    "capacity": 300,
+    "occupancy": 292,
+    "water_units": 180,
+    "meal_units": 240
+  },
+  "Shelter C": {
+    "capacity": 450,
+    "occupancy": 210,
+    "water_units": 1100,
+    "meal_units": 900
+  }
+}
